@@ -1,61 +1,114 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { Button } from '@/components/button';
+import { DateField } from '@/components/date-field';
+import { PercentDisplay } from '@/components/percent-display';
+import { TaskChipList } from '@/components/task-chip-list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useTasks } from '@/hooks/use-tasks';
+import { useTheme } from '@/hooks/use-theme';
+import { useToday } from '@/hooks/use-today';
+import { formatDate, type DateKey } from '@/lib/dates';
+import { expectedProgress } from '@/lib/progress';
+import type { Task } from '@/lib/storage';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
+function openNewTask() {
+  router.push('/task/new');
+}
+
+function openEditTask(task: Task) {
+  router.push({ pathname: '/task/[id]', params: { id: task.id } });
 }
 
 export default function HomeScreen() {
+  const theme = useTheme();
+  const today = useToday();
+  const { tasks, defaultTaskId } = useTasks();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // null means "follow today", so the number stays current across days.
+  const [pickedDate, setPickedDate] = useState<DateKey | null>(null);
+
+  const asOf = pickedDate ?? today;
+  const task =
+    tasks.find((t) => t.id === selectedId) ??
+    tasks.find((t) => t.id === defaultTaskId) ??
+    tasks[0];
+
+  if (!task) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={[styles.safeArea, styles.empty]}>
+          <ThemedText type="subtitle" style={styles.center}>
+            No tasks yet
+          </ThemedText>
+          <ThemedText themeColor="textSecondary" style={styles.center}>
+            Add a task with its start date and deadline to see how far along it should be today.
+          </ThemedText>
+          <Button title="Create your first task" onPress={openNewTask} />
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
+        <View style={styles.header}>
+          <ThemedText type="small" themeColor="textSecondary">
+            EXPECTED COMPLETION
           </ThemedText>
-        </ThemedView>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityHint="Edit this task"
+            onPress={() => openEditTask(task)}
+            style={styles.titleRow}>
+            <ThemedText type="subtitle" numberOfLines={2} style={styles.center}>
+              {task.name}
+            </ThemedText>
+          </Pressable>
+          <ThemedText themeColor="textSecondary">
+            {formatDate(task.startDate)} → {formatDate(task.endDate)}
+          </ThemedText>
+        </View>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
+        <View style={styles.hero}>
+          <PercentDisplay progress={expectedProgress(task, asOf)} />
+        </View>
+
+        <View style={styles.asOf}>
+          <DateField
+            label="As of"
+            value={asOf}
+            valueLabel={pickedDate ? undefined : `Today, ${formatDate(today)}`}
+            onChange={(date) => setPickedDate(date === today ? null : date)}
+          />
+          {pickedDate && (
+            <Pressable accessibilityRole="button" onPress={() => setPickedDate(null)}>
+              <ThemedText type="smallBold" style={[styles.center, { color: theme.accent }]}>
+                Reset to today
+              </ThemedText>
+            </Pressable>
+          )}
+        </View>
+      </SafeAreaView>
+
+      <SafeAreaView edges={['bottom']} style={styles.footer}>
+        <TaskChipList
+          tasks={tasks}
+          selectedId={task.id}
+          defaultTaskId={defaultTaskId}
+          onSelect={(t) => setSelectedId(t.id)}
+          onEdit={openEditTask}
+          onAdd={openNewTask}
+        />
+        <ThemedText type="small" themeColor="textSecondary" style={styles.center}>
+          Tap a task to switch · long-press to edit
         </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
       </SafeAreaView>
     </ThemedView>
   );
@@ -64,35 +117,39 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
   },
   safeArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
+    width: '100%',
     maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
+    alignSelf: 'center',
     paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.four,
     gap: Spacing.four,
   },
-  title: {
+  empty: {
+    justifyContent: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    gap: Spacing.one,
+  },
+  titleRow: {
+    alignSelf: 'stretch',
+  },
+  center: {
     textAlign: 'center',
   },
-  code: {
-    textTransform: 'uppercase',
+  hero: {
+    flex: 1,
+    justifyContent: 'center',
   },
-  stepContainer: {
+  asOf: {
     gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  },
+  footer: {
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.three,
+    gap: Spacing.two,
   },
 });
