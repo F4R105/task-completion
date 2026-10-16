@@ -1,9 +1,11 @@
 import { StyleSheet, View } from 'react-native';
 
+import { ProgressRing } from '@/components/progress-ring';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatPercent, type Progress } from '@/lib/progress';
+import type { ProgressStyle } from '@/lib/settings';
 
 function caption(progress: Progress) {
   switch (progress.status) {
@@ -16,23 +18,42 @@ function caption(progress: Progress) {
   }
 }
 
-export function PercentDisplay({ progress }: { progress: Progress }) {
+type PercentDisplayProps = {
+  progress: Progress;
+  variant: ProgressStyle;
+};
+
+export function PercentDisplay({ progress, variant }: PercentDisplayProps) {
   const theme = useTheme();
   const percent = formatPercent(progress.percent);
+  const ring = variant === 'ring';
+
+  const number = (
+    <ThemedText style={ring ? styles.ringNumber : styles.number} numberOfLines={1} adjustsFontSizeToFit>
+      {percent}
+      <ThemedText style={ring ? styles.ringSign : styles.sign} themeColor="textSecondary">
+        %
+      </ThemedText>
+    </ThemedText>
+  );
 
   return (
-    <View style={styles.container} accessible accessibilityLabel={`${percent} percent expected. ${caption(progress)}`}>
-      <ThemedText style={styles.number} numberOfLines={1} adjustsFontSizeToFit>
-        {percent}
-        <ThemedText style={styles.sign} themeColor="textSecondary">
-          %
-        </ThemedText>
-      </ThemedText>
-      <View style={[styles.track, { backgroundColor: theme.backgroundElement }]}>
-        <View
-          style={[styles.fill, { backgroundColor: theme.accent, width: `${progress.percent}%` }]}
-        />
-      </View>
+    <View
+      style={styles.container}
+      accessible
+      accessibilityLabel={`${percent} percent expected. ${caption(progress)}`}>
+      {ring ? (
+        <ProgressRing percent={progress.percent}>{number}</ProgressRing>
+      ) : (
+        <>
+          {number}
+          <View style={[styles.track, { backgroundColor: theme.backgroundElement }]}>
+            <View
+              style={[styles.fill, { backgroundColor: theme.accent, width: `${progress.percent}%` }]}
+            />
+          </View>
+        </>
+      )}
       <ThemedText themeColor="textSecondary">{caption(progress)}</ThemedText>
     </View>
   );
@@ -52,6 +73,17 @@ const styles = StyleSheet.create({
   },
   sign: {
     fontSize: 48,
+    fontWeight: 600,
+  },
+  ringNumber: {
+    maxWidth: 200,
+    fontSize: 64,
+    lineHeight: 72,
+    fontWeight: 700,
+    fontVariant: ['tabular-nums'],
+  },
+  ringSign: {
+    fontSize: 28,
     fontWeight: 600,
   },
   track: {

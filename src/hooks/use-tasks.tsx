@@ -6,6 +6,8 @@ type TasksContextValue = TasksState & {
   addTask: (input: Omit<Task, 'id'>, makeDefault: boolean) => Task;
   updateTask: (task: Task, makeDefault: boolean) => void;
   removeTask: (id: string) => void;
+  /** Replaces every task, e.g. when restoring a backup or deleting all. */
+  replaceAll: (state: TasksState) => void;
 };
 
 const TasksContext = createContext<TasksContextValue | null>(null);
@@ -49,7 +51,9 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <TasksContext value={{ ...state, addTask, updateTask, removeTask }}>{children}</TasksContext>
+    <TasksContext value={{ ...state, addTask, updateTask, removeTask, replaceAll: commit }}>
+      {children}
+    </TasksContext>
   );
 }
 

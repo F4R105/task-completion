@@ -1,5 +1,5 @@
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -12,14 +12,15 @@ type DateFieldProps = {
   onChange: (value: DateKey) => void;
   /** Shown instead of the formatted date, e.g. "Today". */
   valueLabel?: string;
+  style?: StyleProp<ViewStyle>;
 };
 
 /** A labelled row that opens the platform date picker. */
-export function DateField({ label, value, onChange, valueLabel }: DateFieldProps) {
+export function DateField({ label, value, onChange, valueLabel, style }: DateFieldProps) {
   const theme = useTheme();
 
   return (
-    <View style={[styles.row, { backgroundColor: theme.backgroundElement }]}>
+    <View style={[styles.row, { backgroundColor: theme.backgroundElement }, style]}>
       <ThemedText themeColor="textSecondary">{label}</ThemedText>
       {Platform.OS === 'ios' ? (
         <DateTimePicker
