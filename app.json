@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "task-completion",
+    "name": "Task completion",
     "slug": "task-completion",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -42,6 +42,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cac3df07-2765-4477-bbb4-4ee20d8ffd1e"
+      }
     }
   }
 }

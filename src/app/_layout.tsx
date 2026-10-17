@@ -1,5 +1,6 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
@@ -38,6 +39,8 @@ function ThemedStack() {
           }}
         />
       </Stack>
+      {/* Edge-to-edge makes the status bar transparent, so icons must contrast with the app theme. */}
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <AnimatedSplashOverlay />
     </ThemeProvider>
   );
